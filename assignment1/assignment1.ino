@@ -21,12 +21,18 @@ void setup() {
 }
 
 void loop() {
+
+  int a = 800;  //width of pulses (uS)
+  int b = 100;  //width between pulses (uS)
+  int c = mode0;   //number of pulses in block
+  int d = 5500; //width between pulse blocks
+  
   if(enableButton == LOW){
     if(modeButton == HIGH){
       c = mode1;
-      } else {
-        c = mode0;
-      }
+    } else {
+      c = mode0;
+    }
     digitalWrite(signalB, HIGH);
     delay(0.05);
     digitalWrite(signalB, LOW);
