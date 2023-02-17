@@ -26,22 +26,26 @@ void setup() {
 }
 
 void loop() {
-  if(digitalRead(ENABLEBUTTON) == LOW){
-    if(digitalRead(MODEBUTTON) == HIGH){
-      c = MODE1;
+  if(digitalRead(ENABLEBUTTON) == LOW){ //if enable utton is not pressed, run following block
+    if(digitalRead(MODEBUTTON) == HIGH){  //if mode button is presed...
+      c = MODE1;  //set c to 17
     } else {
-      c = MODE0;
+      c = MODE0;  //if mode button is not pressed, set c to 14
     }
+    
+    //pulse signal b high for 50uS
     digitalWrite(SIGNALB, HIGH);
     delayMicroseconds(50);
     digitalWrite(SIGNALB, LOW);
+
+    //pulse signal a c times
     for(int i=0; i<c; i++){
       digitalWrite(SIGNALA, HIGH);
-      double delayTime = (a+(50*i));
+      double delayTime = (a+(50*i));  //set the length of time the pulse is high
       delayMicroseconds(delayTime);
       digitalWrite(SIGNALA, LOW);
-      delayMicroseconds(b);
+      delayMicroseconds(b); //set length of time signal a is low
     }
-    delayMicroseconds(d);
+    delayMicroseconds(d); //set daley time between blocks of pulses
   }
 }
