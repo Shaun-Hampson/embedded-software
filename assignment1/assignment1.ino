@@ -5,7 +5,7 @@
 #define MODEBUTTON 22
 #define ENABLEBUTTON 23
 #define MODE0 14
-#define MODE1 11
+#define MODE1 17
 
   double a;  //width of pulses (uS)
   double b;  //width between pulses (uS)
@@ -28,9 +28,9 @@ void setup() {
 void loop() {
   if(digitalRead(ENABLEBUTTON) == LOW){ //if enable utton is not pressed, run following block
     if(digitalRead(MODEBUTTON) == HIGH){  //if mode button is presed...
-      c = MODE1;  //set c to 11
+      c = MODE0;  //set c to 14
     } else {
-      c = MODE0;  //if mode button is not pressed, set c to 14
+      c = MODE1;  //if mode button is not pressed, set c to 17
     }
     
     //pulse signal b high for 50uS
