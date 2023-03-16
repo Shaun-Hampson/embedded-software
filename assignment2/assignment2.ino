@@ -69,6 +69,7 @@ void loop() {
 void task1(){
   monitor.jobStarted(1);
   //...
+  //ceate a pulse of 200us followed by a pulse of 20us with a 50us delay between pulses
   digitalWrite(TASK1PIN, HIGH);
   delayMicroseconds(200);
   digitalWrite(TASK1PIN, LOW);
@@ -104,7 +105,6 @@ void task2(){
     halfTime = micros();
   }
   frequency2 = (float(1)/((halfTime-startTime)*float(2)))*float(1000000);
-  Serial.println(halfTime-startTime);
   //Serial.println(frequency2);
   frequency2Int = map(frequency2, 333, 1000, 0, 99);
   frequency2Int = constrain(frequency2Int, 0, 99);
