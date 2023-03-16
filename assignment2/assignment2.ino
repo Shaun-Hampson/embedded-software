@@ -10,13 +10,20 @@ Ticker periodicTicker;
 #define TASK4INPUTPIN 34
 #define TASK4OUTPUTPIN 27
 
-int counter, frameCounter;
-float arr[4] = {0, 0, 0, 0};
-float average;
-float maxRange = 4095.00;
+//variables for tasks
+int counter, frameCounter;  //counter variables
+float arr[4] = {0, 0, 0, 0};  //hold past 4 readings for task 4
+int frequency2Int, frequency3Int; //hold frequencies
+
+//constants
+const int pulse1 = 200, pulse2 = 20, pulseDelay = 50; //task1 pulse constants
+const float maxRange = 4095.00; //Hold max range of potentiometer
+const int lowerThresh = 0, higherThresh = 99; //thresholds for remapping task2/task3 readings
+const int lowerFreq2 = 333, higherFreq2 = 1000, lowerFreq3 = 500, higherFreq3 = 1000;
+
+//test variables for calculating time
 int time1, time2, timeDiff;
-float startTime, halfTime, frequency2, frequency3;
-int frequency2Int, frequency3Int;
+
 
 void setup() {
   Serial.begin(9600);
@@ -58,101 +65,68 @@ void schedule(){
 }
 
 void loop() {
-  //time1 = micros();
-  //task3();
-  //time2 = micros();
-  //timeDiff = time2-time1;
-  //Serial.println(timeDiff);
-  //Serial.println();
 }
 
 void task1(){
   monitor.jobStarted(1);
-  //...
   //ceate a pulse of 200us followed by a pulse of 20us with a 50us delay between pulses
   digitalWrite(TASK1PIN, HIGH);
-  delayMicroseconds(200);
+  delayMicroseconds(pulse1);
   digitalWrite(TASK1PIN, LOW);
-  delayMicroseconds(50);
+  delayMicroseconds(pulseDelay);
   digitalWrite(TASK1PIN, HIGH);
-  delayMicroseconds(20);
+  delayMicroseconds(pulse2);
   digitalWrite(TASK1PIN, LOW);
   
   monitor.jobEnded(1);
 }
 
-void task2(){
-  monitor.jobStarted(2);
-  //...
-  if (digitalRead(TASK2PIN) == HIGH){
-    while(digitalRead(TASK2PIN) == HIGH){
-      //Serial.print("while 1");
+float measureFrequency(uint8_t pin){
+  float halfTime, startTime;
+  if (digitalRead(pin) == HIGH){
+    while(digitalRead(pin) == HIGH){
     }
     startTime = micros();
-    while(digitalRead(TASK2PIN) == LOW){
-      //Serial.print("while 12");
+    while(digitalRead(pin) == LOW){
     }
     halfTime = micros();
   }
   else{
-    while(digitalRead(TASK2PIN) == LOW){
-      //Serial.print("while 2");
+    while(digitalRead(pin) == LOW){
     }
     startTime = micros();
-    while(digitalRead(TASK2PIN) == HIGH){
-      //Serial.print("while 22");
+    while(digitalRead(pin) == HIGH){
     }
     halfTime = micros();
   }
-  frequency2 = (float(1)/((halfTime-startTime)*float(2)))*float(1000000);
-  //Serial.println(frequency2);
-  frequency2Int = map(frequency2, 333, 1000, 0, 99);
-  frequency2Int = constrain(frequency2Int, 0, 99);
-  //Serial.println(frequency2Int);
+  float frequency = (float(1)/((halfTime-startTime)*float(2)))*float(1000000);
+  return frequency;
+}
+
+void task2(){
+  monitor.jobStarted(2);
+  float frequency2 = measureFrequency(TASK2PIN);
+  frequency2Int = map(frequency2, lowerFreq2, higherFreq2, lowerThresh, higherThresh);
+  frequency2Int = constrain(frequency2Int, lowerThresh, higherThresh);
   monitor.jobEnded(2);
 }
 
 void task3(){
   monitor.jobStarted(3);
-  //..
-  if (digitalRead(TASK3PIN) == HIGH){
-    while(digitalRead(TASK3PIN) == HIGH){
-      //Serial.print("while 1");
-    }
-    startTime = micros();
-    while(digitalRead(TASK3PIN) == LOW){
-      //Serial.print("while 12");
-    }
-    halfTime = micros();
-  }
-  else{
-    while(digitalRead(TASK3PIN) == LOW){
-      //Serial.print("while 2");
-    }
-    startTime = micros();
-    while(digitalRead(TASK3PIN) == HIGH){
-      //Serial.print("while 22");
-    }
-    halfTime = micros();
-  }
-  frequency3 = (float(1)/((halfTime-startTime)*float(2)))*1000000;
-  //Serial.println(halfTime-startTime);
-  //Serial.println(frequency2);
-  frequency3Int = map(frequency3, 500, 1000, 0, 99);
-  frequency3Int = constrain(frequency3Int, 0, 99);
-  //Serial.println(frequency3Int);
+  float frequency3 = measureFrequency(TASK3PIN);
+  frequency3Int = map(frequency3, lowerFreq3, higherFreq3, lowerThresh, higherThresh);
+  frequency3Int = constrain(frequency3Int, lowerThresh, higherThresh);
   monitor.jobEnded(3);
 }
 
 void task4(){
   monitor.jobStarted(4);
-  //...
   float task4Value = analogRead(TASK4INPUTPIN);  //Read input
   //save input
   int arrPos = counter % 4;
   arr[arrPos] = task4Value;
   //average last 4 values
-  average = 0;
+  float average = 0;
   for (int i = 0; i < 4; i++){
     average += arr[i];
   }
