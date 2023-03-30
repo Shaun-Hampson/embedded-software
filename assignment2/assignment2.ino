@@ -22,10 +22,6 @@ const float maxRange = 4095.00; //Hold max range of potentiometer
 const int lowerThresh = 0, higherThresh = 99; //thresholds for remapping task2/task3 readings
 const int lowerFreq2 = 333, higherFreq2 = 1000, lowerFreq3 = 500, higherFreq3 = 1000;
 
-//test variables for calculating time
-int time1, time2, timeDiff;
-
-
 void setup() {
   Serial.begin(9600); //start serial monitor
   monitor.startMonitoring();  //start monitor
