@@ -11,7 +11,13 @@
 
 void setup() {
   // put your setup code here, to run once:
-
+  pinMode(TASK1PIN, OUTPUT);
+  pinMode(TASK2PIN, INPUT);
+  pinMode(TASK3PIN, INPUT);
+  pinMode(TASK4INPUTPIN, INPUT);
+  pinMode(TASK4OUTPUTPIN, OUTPUT);
+  pinMode(BUTTONPIN, INPUT);
+  pinMode(LEDPIN, OUTPUT);
 }
 
 void loop() {
