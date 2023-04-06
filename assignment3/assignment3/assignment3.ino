@@ -31,22 +31,29 @@
 //create queues
 static QueueHandle_t button_queue;
 
-//create semaphore
+//create semaphores
 static SemaphoreHandle_t frequency_semaphore;
+static SemaphoreHandle_t timings_semaphore;
 
+
+//create struct
 struct Data{
-  float frequency2;
-  float frequency3;
+  int frequency2; //hold value for task2 frequency
+  int frequency3; //hold value for task3 frequency
 } frequency;
 
 void setup() {
   //start serial monitor
-  Serial.begin(115200);
+  Serial.begin(9600);
   
   //set up queue
   button_queue = xQueueCreate(3,sizeof(bool));
+  
+  //set up semaphores
   frequency_semaphore = xSemaphoreCreateBinary();
-  xSemaphoreGive(frequency_semaphore);
+  xSemaphoreGive(frequency_semaphore);  //start semaphore in a "given" state so tasks 2,3,5 can run
+  timings_semaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(timings_semaphore);  //start semaphore in a "given" state so task 1 and measureFrequency can run
   
   // put your setup code here, to run once:
   pinMode(TASK1PIN, OUTPUT);
@@ -58,12 +65,21 @@ void setup() {
   pinMode(LEDPIN, OUTPUT);
 
   delay(1000);
-
+  
+  //create tasks
+  /*
+   * task
+   * task name
+   * stack size
+   * parameters
+   * priority
+   * pxCreatedTask
+   */
   xTaskCreate(task1,
     "Task 1",
     1024,
     NULL,
-    1,
+    3,
     NULL);
 
   xTaskCreate(task2,
@@ -91,40 +107,45 @@ void setup() {
     "Task 5",
     2048,
     NULL,
-    1,
+    2,
     NULL);
   
   xTaskCreate(button_Pressed,
     "Debounce Button",
     1024,
     NULL,
-    2,
+    1,
     NULL);
 
   xTaskCreate(LED_Toggle,
     "LED Toggle",
     1024,
     NULL,
-    2,
+    1,
     NULL);
 }
 
+//task1 - create pulses of 200ms and 20ms with a 50ms gap
 void task1(void *pvParameter){
   const int pulse1 = 200, pulse2 = 20, pulseDelay = 50;
   
   for(;;){
     //Serial.println("task1");
-    digitalWrite(TASK1PIN, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(TASK1PIN, LOW);
-    delayMicroseconds(pulseDelay);
-    digitalWrite(TASK1PIN, HIGH);
-    delayMicroseconds(pulse2);
-    digitalWrite(TASK1PIN, LOW);
+    if(xSemaphoreTake(timings_semaphore, portMAX_DELAY) == pdPASS){
+      digitalWrite(TASK1PIN, HIGH);
+      delayMicroseconds(pulse1);
+      digitalWrite(TASK1PIN, LOW);
+      delayMicroseconds(pulseDelay);
+      digitalWrite(TASK1PIN, HIGH);
+      delayMicroseconds(pulse2);
+      digitalWrite(TASK1PIN, LOW);
+      xSemaphoreGive(timings_semaphore);
+    }
     vTaskDelay(D_T1);
   }
 }
 
+//task2 - measure frequency between 333hz and 1000hz and rebind value from 0 to 99
 void task2(void *pvParameter){
   const int lowerFrequency = 333, higherFrequency = 1000;
   const int lowerThresh = 0, higherThresh = 99;
@@ -143,6 +164,7 @@ void task2(void *pvParameter){
   }
 }
 
+//task3 - measure frequency between 500hz and 1000hz and rebind value from 0 to 99
 void task3(void *pvParameter){
   const int lowerFrequency = 500, higherFrequency = 1000;
   const int lowerThresh = 0, higherThresh = 99;
@@ -161,31 +183,37 @@ void task3(void *pvParameter){
   }
 }
 
+
+//measureFrequency - read in frequency from desired pin
 float measureFrequency(uint8_t pin){
   float halfTime, startTime;
   //check if signal is HIGH
   //find the time for half the period
-  if (digitalRead(pin) == HIGH){
-    while(digitalRead(pin) == HIGH){  //while HIGH, keep polling
+  if(xSemaphoreTake(timings_semaphore, portMAX_DELAY) == pdPASS){
+    if (digitalRead(pin) == HIGH){
+      while(digitalRead(pin) == HIGH){  //while HIGH, keep polling
+      }
+      startTime = micros(); //once signal is LOW, record current time
+      while(digitalRead(pin) == LOW){ //while LOW, keep polling
+      }
+      halfTime = micros();  //once signal is HIGH, record current time
     }
-    startTime = micros(); //once signal is LOW, record current time
-    while(digitalRead(pin) == LOW){ //while LOW, keep polling
+    //following lines occur if signal is LOW instead of HIGH. Work the same as above
+    else{
+      while(digitalRead(pin) == LOW){
+      }
+      startTime = micros();
+      while(digitalRead(pin) == HIGH){
+      }
+      halfTime = micros();
     }
-    halfTime = micros();  //once signal is HIGH, record current time
-  }
-  //following lines occur if signal is LOW instead of HIGH. Work the same as above
-  else{
-    while(digitalRead(pin) == LOW){
-    }
-    startTime = micros();
-    while(digitalRead(pin) == HIGH){
-    }
-    halfTime = micros();
+    xSemaphoreGive(timings_semaphore);
   }
   float frequency = (float(1)/((halfTime-startTime)*float(2)))*float(1000000);  //find the frequency, 1/period 
   return frequency;
 }
 
+//task4 - average the past for anaglog readings and turn on an led if over half of maxRange
 void task4(void *pvParameter){
   const int maxRange = 4095.00;
   float task4Value, average;
@@ -216,6 +244,7 @@ void task4(void *pvParameter){
   }
 }
 
+//task5 - print the lastest readings from tasks 2 and 3
 void task5(void *pvParameter){
   for(;;){
     if(xSemaphoreTake(frequency_semaphore, portMAX_DELAY) == pdPASS){
@@ -228,6 +257,7 @@ void task5(void *pvParameter){
   }
 }
 
+//task6 - button debounce, add state of led to a queue
 void button_Pressed(void *pvParameters){
   int lastState = LOW, buttonState, state;
   bool ledState = false;
@@ -256,6 +286,7 @@ void button_Pressed(void *pvParameters){
   }
 }
 
+//task7 - LED toggle, read new state from queue and update LED
 void LED_Toggle(void *pvParameters){
   BaseType_t queue;
   bool ledState;
