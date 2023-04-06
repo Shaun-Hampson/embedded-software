@@ -6,12 +6,12 @@
 #endif
 
 //create defines
-#define TASK1PIN 4
+#define TASK1PIN 23//4
 #define TASK2PIN 16
 #define TASK3PIN 18
-#define TASK4INPUTPIN 35
-#define TASK4OUTPUTPIN 21
-#define BUTTONPIN 27
+#define TASK4INPUTPIN 34//35
+#define TASK4OUTPUTPIN 27//21
+#define BUTTONPIN 15//27
 #define LEDPIN 13
 
 //constants
@@ -45,6 +45,8 @@ void setup() {
   
   //set up queue
   button_queue = xQueueCreate(3,sizeof(bool));
+  frequency_semaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(frequency_semaphore);
   
   // put your setup code here, to run once:
   pinMode(TASK1PIN, OUTPUT);
@@ -68,14 +70,14 @@ void setup() {
     "Task 2",
     1024,
     NULL,
-    1,
+    2,
     NULL);
 
   xTaskCreate(task3,
     "Task 3",
     1024,
     NULL,
-    1,
+    2,
     NULL);
 
   xTaskCreate(task4,
@@ -111,7 +113,7 @@ void task1(void *pvParameter){
   const int pulse1 = 200, pulse2 = 20, pulseDelay = 50;
   
   for(;;){
-    Serial.println("task1");
+    //Serial.println("task1");
     digitalWrite(TASK1PIN, HIGH);
     delayMicroseconds(pulse1);
     digitalWrite(TASK1PIN, LOW);
@@ -130,12 +132,11 @@ void task2(void *pvParameter){
   int frequency2Int;
 
   for(;;){
-    Serial.println("task2");
     frequency2 = measureFrequency(TASK2PIN);  //read frequency
     frequency2Int = map(frequency2, lowerFrequency, higherFrequency, lowerThresh, higherThresh);  //remap frequency
     frequency2Int = constrain(frequency2Int, lowerThresh, higherThresh);  //constrain values
     if(xSemaphoreTake(frequency_semaphore, portMAX_DELAY) == pdPASS){
-      frequency.frequency2 = frequency2;
+      frequency.frequency2 = frequency2Int;
       xSemaphoreGive(frequency_semaphore);
     }
     vTaskDelay(D_T2);
@@ -149,12 +150,11 @@ void task3(void *pvParameter){
   int frequency3Int;
 
   for(;;){
-    Serial.println("task3");
     frequency3 = measureFrequency(TASK3PIN);
     frequency3Int = map(frequency3, lowerFrequency, higherFrequency, lowerThresh, higherThresh);  //remap frequency
     frequency3Int = constrain(frequency3Int, lowerThresh, higherThresh);  //constrain values
     if(xSemaphoreTake(frequency_semaphore, portMAX_DELAY) == pdPASS){
-      frequency.frequency3 = frequency3;
+      frequency.frequency3 = frequency3Int;
       xSemaphoreGive(frequency_semaphore);
     }
     vTaskDelay(D_T3);
@@ -193,7 +193,7 @@ void task4(void *pvParameter){
   float arr[4] = {0,0,0,0};
   
   for(;;){
-    Serial.println("task4");
+    //Serial.println("task4");
     task4Value = analogRead(TASK4INPUTPIN);
 
     arrPos = counter%4;
@@ -242,7 +242,6 @@ void button_Pressed(void *pvParameters){
     
     if((millis()-timer) > DEBOUNCE_DELAY){
       if(state != buttonState){
-        Serial.println("here");
         buttonState = state;
         if(buttonState == HIGH){
           ledState = !ledState;
